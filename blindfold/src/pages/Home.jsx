@@ -38,58 +38,7 @@ export default function Home() {
   const [currentDrop, setCurrentDrop] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [prefs, state] = await Promise.all([getPreferences(), getDateState()]);
-        setPreferences(prefs);
-        setDateState(state);
-        setIsRevealed(state?.currentDateId || null);
-
-        // Fetch date ideas from Supabase or use samples
-        let dateIdeas = [];
-        const { data, error } = await supabase.from('date_ideas').select('*');
-        if (!error && data && data.length > 0) {
-          dateIdeas = data;
-        } else {
-          dateIdeas = SAMPLE_DATE_IDEAS;
-        }
-
-        // Get or create current date
-        if (state?.currentDateId) {
-          const drop = dateIdeas.find(d => d.id === state.currentDateId);
-          if (drop) setCurrentDrop(drop);
-        } else {
-          // Pick random date for new users
-          const randomDrop = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
-          if (randomDrop) {
-            setCurrentDrop(randomDrop);
-            await saveDateState({ currentDateId: randomDrop.id, accepted: false });
-          }
-        }
-      } catch (error) {
-        console.error('Error loading home data:', error);
-        // Fallback to first sample date
-        setCurrentDrop(SAMPLE_DATE_IDEAS[0]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
-  }, []);
-
-  // Show loading screen while data loads
-  if (isLoading || !currentDrop) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] animate-pulse" />
-          <p className="text-[#b0b0b0] font-body">Loading your adventure...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Timer effect - must be before any conditional returns
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -106,6 +55,98 @@ export default function Home() {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Data loading effect
+  useEffect(() => {
+    const loadData = async () => {
+      let dateIdeas = SAMPLE_DATE_IDEAS;
+
+      try {
+        const [prefs, state] = await Promise.all([getPreferences(), getDateState()]);
+        console.log('Home: loaded prefs=', prefs, 'state=', state);
+        setPreferences(prefs);
+        setDateState(state);
+        setIsRevealed(state?.currentDateId || null);
+
+        // Fetch date ideas from Supabase
+        const { data: supabaseData, error: supabaseError } = await supabase.from('date_ideas').select('*');
+        console.log('Home: Supabase date_ideas:', { data: supabaseData, error: supabaseError });
+        if (!supabaseError && supabaseData && supabaseData.length > 0) {
+          // Transform Supabase data to match our app's format
+          dateIdeas = supabaseData.map(d => ({
+            id: d.id,
+            title: d.title,
+            category: d.category,
+            description: d.description,
+            roleA: { label: d.roleA_label, instruction: d.roleA_instruction },
+            roleB: { label: d.roleB_label, instruction: d.roleB_instruction },
+            budget: d.budget,
+            duration: d.duration
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading home data:', error);
+      }
+
+      // Get or create current date
+      const state = await getDateState();
+      console.log('Home: current state=', state, 'dateIdeas=', dateIdeas);
+
+      if (state?.currentDateId) {
+        // Convert to number for comparison since Supabase returns strings
+        const targetId = typeof state.currentDateId === 'string'
+          ? parseInt(state.currentDateId, 10)
+          : state.currentDateId;
+        const drop = dateIdeas.find(d => {
+          const dropId = typeof d.id === 'string' ? parseInt(d.id, 10) : d.id;
+          return dropId === targetId;
+        });
+        console.log('Home: found drop=', drop, 'for id=', targetId);
+        if (drop) {
+          setCurrentDrop(drop);
+        } else {
+          const randomDrop = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
+          if (randomDrop) {
+            setCurrentDrop(randomDrop);
+            await saveDateState({ currentDateId: randomDrop.id, accepted: false });
+          }
+        }
+      } else {
+        const randomDrop = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
+        console.log('Home: new user, picked randomDrop=', randomDrop);
+        if (randomDrop) {
+          setCurrentDrop(randomDrop);
+          await saveDateState({ currentDateId: randomDrop.id, accepted: false });
+        }
+      }
+
+      setIsLoading(false);
+    };
+    loadData();
+  }, []);
+
+  // Show loading screen while data loads
+  if (isLoading || !currentDrop) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] animate-pulse" />
+          <p className="text-[#b0b0b0] font-body">Loading your adventure...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback if currentDrop is somehow undefined after loading
+  if (!currentDrop?.roleA || !currentDrop?.roleB) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[#b0b0b0] font-body">Preparing your adventure...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleReveal = async () => {
     if (!currentDrop) return;

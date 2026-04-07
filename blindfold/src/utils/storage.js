@@ -70,11 +70,17 @@ export const clearPreferences = async () => {
 
 export const hasCompletedOnboarding = async () => {
   try {
+    // First check localStorage directly (more reliable than getPreferences which tries Supabase first)
+    const localData = localStorage.getItem(STORAGE_KEY);
+    if (localData) {
+      const prefs = JSON.parse(localData);
+      const hasAllFields = !!(prefs && prefs.names && prefs.vibes && prefs.limits && prefs.frequency);
+      if (hasAllFields) return true;
+    }
+
+    // Fallback to Supabase
     const prefs = await getPreferences();
-    console.log('hasCompletedOnboarding - preferences:', prefs);
-    const result = !!(prefs && prefs.names && prefs.vibes && prefs.limits && prefs.frequency);
-    console.log('hasCompletedOnboarding - result:', result);
-    return result;
+    return !!(prefs && prefs.names && prefs.vibes && prefs.limits && prefs.frequency);
   } catch (error) {
     console.error('Error checking onboarding status:', error);
     return false;
@@ -123,15 +129,12 @@ export const clearRandomDates = () => {
 
 export const saveDateState = async (state) => {
   try {
-    const current = await getPreferences();
-    localStorage.setItem(DATE_STORAGE_KEY, JSON.stringify({
-      ...current,
-      dateState: state
-    }));
+    // Save directly to localStorage with correct format
+    localStorage.setItem(DATE_STORAGE_KEY, JSON.stringify({ dateState: state }));
     // Sync to Supabase
     const { data: authData } = await supabase.auth.getUser();
     if (authData && authData.user) {
-      await saveUserData(authData.user.id, { preferences: current, dateState: state });
+      await saveUserData(authData.user.id, { dateState: state });
     }
     return true;
   } catch (error) {

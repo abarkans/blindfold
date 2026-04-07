@@ -19,8 +19,16 @@ function ProtectedRoute({ children }) {
 
   useEffect(() => {
     const check = async () => {
-      const result = await hasCompletedOnboarding();
-      setHasOnboarded(result);
+      try {
+        const result = await hasCompletedOnboarding();
+        setHasOnboarded(result);
+      } catch (err) {
+        console.error('ProtectedRoute error:', err);
+        // Fallback to localStorage check
+        const localData = localStorage.getItem('blindfold_preferences');
+        const prefs = localData ? JSON.parse(localData) : null;
+        setHasOnboarded(!!(prefs?.names && prefs?.vibes && prefs?.limits && prefs?.frequency));
+      }
       setIsChecking(false);
     };
     check();

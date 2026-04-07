@@ -25,6 +25,8 @@ export default function Register() {
       setLoading(true);
       setError(null);
 
+      console.log('Starting signup with plan:', plan);
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -35,13 +37,17 @@ export default function Register() {
         }
       });
 
+      console.log('Signup result:', { data, error });
+
       if (error) throw error;
 
       if (data && data.user) {
-        // Redirect to onboarding after successful registration
-        navigate('/onboarding');
+        console.log('User created, navigating to onboarding...');
+        // Force redirect to onboarding, bypassing any checks
+        window.location.href = '/onboarding';
       }
     } catch (err) {
+      console.error('Signup error:', err);
       setError(err.message);
     } finally {
       setLoading(false);

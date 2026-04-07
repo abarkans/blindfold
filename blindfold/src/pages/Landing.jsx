@@ -116,12 +116,6 @@ export default function Landing() {
                 >
                   {isLoggedIn ? 'Go to Dashboard' : 'Start Your Adventure'}
                 </button>
-                <button
-                  onClick={() => navigate('/auth')}
-                  className="px-8 py-4 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-white font-semibold text-lg hover:bg-[#2a2a2a] transition-colors"
-                >
-                  How It Works
-                </button>
               </div>
             </div>
 

@@ -28,7 +28,7 @@ export default function Landing() {
     if (isLoggedIn) {
       navigate('/home');
     } else {
-      navigate('/auth');
+      navigate('/auth?mode=signup');
     }
   };
 

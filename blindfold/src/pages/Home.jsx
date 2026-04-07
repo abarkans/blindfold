@@ -36,38 +36,59 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState({ days: 2, hours: 14, minutes: 32 });
   const [isFlipping, setIsFlipping] = useState(false);
   const [currentDrop, setCurrentDrop] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
-      const [prefs, state] = await Promise.all([getPreferences(), getDateState()]);
-      setPreferences(prefs);
-      setDateState(state);
-      setIsRevealed(state?.currentDateId || null);
+      try {
+        const [prefs, state] = await Promise.all([getPreferences(), getDateState()]);
+        setPreferences(prefs);
+        setDateState(state);
+        setIsRevealed(state?.currentDateId || null);
 
-      // Fetch date ideas from Supabase or use samples
-      let dateIdeas = [];
-      const { data, error } = await supabase.from('date_ideas').select('*');
-      if (!error && data && data.length > 0) {
-        dateIdeas = data;
-      } else {
-        dateIdeas = SAMPLE_DATE_IDEAS;
-      }
-
-      // Get or create current date
-      if (state?.currentDateId) {
-        const drop = dateIdeas.find(d => d.id === state.currentDateId);
-        if (drop) setCurrentDrop(drop);
-      } else {
-        // Pick random date for new users
-        const randomDrop = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
-        if (randomDrop) {
-          setCurrentDrop(randomDrop);
-          await saveDateState({ currentDateId: randomDrop.id, accepted: false });
+        // Fetch date ideas from Supabase or use samples
+        let dateIdeas = [];
+        const { data, error } = await supabase.from('date_ideas').select('*');
+        if (!error && data && data.length > 0) {
+          dateIdeas = data;
+        } else {
+          dateIdeas = SAMPLE_DATE_IDEAS;
         }
+
+        // Get or create current date
+        if (state?.currentDateId) {
+          const drop = dateIdeas.find(d => d.id === state.currentDateId);
+          if (drop) setCurrentDrop(drop);
+        } else {
+          // Pick random date for new users
+          const randomDrop = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
+          if (randomDrop) {
+            setCurrentDrop(randomDrop);
+            await saveDateState({ currentDateId: randomDrop.id, accepted: false });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading home data:', error);
+        // Fallback to first sample date
+        setCurrentDrop(SAMPLE_DATE_IDEAS[0]);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadData();
   }, []);
+
+  // Show loading screen while data loads
+  if (isLoading || !currentDrop) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] animate-pulse" />
+          <p className="text-[#b0b0b0] font-body">Loading your adventure...</p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const timer = setInterval(() => {

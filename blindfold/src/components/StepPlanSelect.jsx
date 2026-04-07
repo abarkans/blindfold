@@ -23,10 +23,7 @@ const proFeatures = [
 ];
 
 export default function StepPlanSelect({ plan, setPlan, onBack, onConfirm, loading }) {
-  console.log('StepPlanSelect - plan:', plan, 'loading:', loading);
-
   const handlePlanSelect = (selectedPlan) => {
-    console.log('Plan selected:', selectedPlan);
     setPlan(selectedPlan);
   };
 

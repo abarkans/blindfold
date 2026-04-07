@@ -3,9 +3,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { savePreferences } from '../utils/storage';
 import StepCredentials from '../components/StepCredentials';
 import StepPlanSelect from '../components/StepPlanSelect';
-import StepVerifyEmail from '../components/StepVerifyEmail';
+import StepNames from '../components/StepNames';
+import StepVibes from '../components/StepVibes';
+import StepLimits from '../components/StepLimits';
+import StepFrequency from '../components/StepFrequency';
+import { frequencyOptions } from '../data/mockData';
+import OptionCard from '../components/OptionCard';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -16,17 +22,42 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Onboarding state
+  const [names, setNames] = useState({ yourName: '', partnerName: '' });
+  const [vibes, setVibes] = useState([]);
+  const [limits, setLimits] = useState({
+    budget: 50,
+    hasCar: false,
+    walkingDistance: false
+  });
+  const [frequency, setFrequency] = useState('');
+
   const handleCredentialsSubmit = () => {
     setStep(2);
   };
 
-  const handlePlanConfirm = async () => {
+  const handlePlanSelect = () => {
+    setStep(3);
+  };
+
+  const handleNamesSubmit = () => {
+    setStep(4);
+  };
+
+  const handleVibesConfirm = () => {
+    setStep(5);
+  };
+
+  const handleLimitsConfirm = () => {
+    setStep(6);
+  };
+
+  const handleFinalSubmit = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      console.log('Starting signup with plan:', plan);
-
+      // Create account
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -37,17 +68,33 @@ export default function Register() {
         }
       });
 
-      console.log('Signup result:', { data, error });
-
       if (error) throw error;
 
       if (data && data.user) {
-        console.log('User created, navigating to onboarding...');
-        // Force redirect to onboarding, bypassing any checks
-        window.location.href = '/onboarding';
+        // Save preferences
+        const preferences = {
+          names,
+          vibes,
+          limits,
+          frequency
+        };
+        await savePreferences(preferences);
+
+        // Also save to Supabase
+        const { error: dbError } = await supabase
+          .from('user_data')
+          .upsert({
+            user_id: data.user.id,
+            data: { preferences },
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
+
+        if (dbError) console.error('Error saving to Supabase:', dbError);
+
+        // Navigate to home
+        navigate('/home');
       }
     } catch (err) {
-      console.error('Signup error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -58,6 +105,22 @@ export default function Register() {
     if (step > 1) {
       setStep(step - 1);
     }
+  };
+
+  const getTotalSteps = () => {
+    return 6; // Credentials, Plan, Names, Vibes, Limits, Frequency
+  };
+
+  const getStepLabel = () => {
+    const labels = {
+      1: 'Credentials',
+      2: 'Plan',
+      3: 'Names',
+      4: 'Vibes',
+      5: 'Limits',
+      6: 'Frequency'
+    };
+    return labels[step] || '';
   };
 
   return (
@@ -82,24 +145,22 @@ export default function Register() {
 
         <div className="mt-20">
           {/* Progress Indicator */}
-          {step < 3 && (
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[#b0b0b0]">
-                  Step {step} of 2
-                </span>
-                <span className="text-sm text-[#b0b0b0]">
-                  {step === 1 ? 'Credentials' : 'Plan'}
-                </span>
-              </div>
-              <div className="w-full bg-[#1a1a1a] rounded-full h-2 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] rounded-full transition-all duration-300"
-                  style={{ width: step === 1 ? '50%' : '100%' }}
-                />
-              </div>
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-[#b0b0b0]">
+                Step {step} of {getTotalSteps()}
+              </span>
+              <span className="text-sm text-[#b0b0b0]">
+                {getStepLabel()}
+              </span>
             </div>
-          )}
+            <div className="w-full bg-[#1a1a1a] rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] rounded-full transition-all duration-300"
+                style={{ width: `${(step / getTotalSteps()) * 100}%` }}
+              />
+            </div>
+          </div>
 
           {/* Step Content */}
           <div className="bg-[#0a0a0a] rounded-3xl p-6 border border-[#1a1a1a]">
@@ -120,13 +181,46 @@ export default function Register() {
                 plan={plan}
                 setPlan={setPlan}
                 onBack={handleBack}
-                onConfirm={handlePlanConfirm}
+                onConfirm={handlePlanSelect}
                 loading={loading}
               />
             )}
 
             {step === 3 && (
-              <StepVerifyEmail email={email} />
+              <StepNames
+                names={names}
+                setNames={setNames}
+                onSubmit={handleNamesSubmit}
+                loading={loading}
+              />
+            )}
+
+            {step === 4 && (
+              <StepVibes
+                vibes={vibes}
+                setVibes={setVibes}
+                onBack={handleBack}
+                onConfirm={handleVibesConfirm}
+              />
+            )}
+
+            {step === 5 && (
+              <StepLimits
+                limits={limits}
+                setLimits={setLimits}
+                onBack={handleBack}
+                onConfirm={handleLimitsConfirm}
+              />
+            )}
+
+            {step === 6 && (
+              <StepFrequency
+                frequency={frequency}
+                setFrequency={setFrequency}
+                onBack={handleBack}
+                onConfirm={handleFinalSubmit}
+                loading={loading}
+              />
             )}
           </div>
         </div>

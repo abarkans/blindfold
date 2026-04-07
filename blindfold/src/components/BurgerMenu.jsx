@@ -54,7 +54,7 @@ export default function BurgerMenu() {
       {/* Burger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden relative z-50 p-2 text-white hover:text-[#fd297b] transition-colors"
+        className="md:hidden relative z-[100] p-2 text-white hover:text-[#fd297b] transition-colors"
         aria-label={isOpen ? 'Close menu' : 'Open menu'}
       >
         <div className="w-6 h-6 relative flex items-center justify-center">
@@ -78,7 +78,7 @@ export default function BurgerMenu() {
 
       {/* Full Screen Overlay */}
       <div
-        className={`fixed inset-0 z-40 md:hidden transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[99] md:hidden transition-opacity duration-300 ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -89,7 +89,7 @@ export default function BurgerMenu() {
         />
 
         {/* Menu Content */}
-        <div className="relative z-50 flex flex-col items-center justify-center min-h-screen px-6">
+        <div className="relative z-[100] flex flex-col items-center justify-center min-h-screen px-6">
           <nav className="flex flex-col items-center gap-2">
             {menuItems.map((item, index) => (
               <NavLink

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CategoryBadge, BottomNav } from '../components';
@@ -33,27 +35,55 @@ export default function Home() {
   const [preferences, setPreferences] = useState(null);
   const [dateState, setDateState] = useState(null);
   const [isRevealed, setIsRevealed] = useState(null);
-  const [timeLeft, setTimeLeft] = useState({ days: 2, hours: 14, minutes: 32 });
+  const [isAccepted, setIsAccepted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState({ days: 2, hours: 14, minutes: 32, seconds: 0 });
   const [isFlipping, setIsFlipping] = useState(false);
   const [currentDrop, setCurrentDrop] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userPlan, setUserPlan] = useState('free');
+  const [showRerollDialog, setShowRerollDialog] = useState(false);
+  const [previousDate, setPreviousDate] = useState(null);
+  const [isRerolling, setIsRerolling] = useState(false);
+  const [hasRerolled, setHasRerolled] = useState(false);
+  const [showingRerolledDate, setShowingRerolledDate] = useState(false);
 
-  // Timer effect - must be before any conditional returns
+  // Timer effect - calculates countdown to next drop date
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1 };
-        } else if (prev.hours > 0) {
-          return { ...prev, hours: prev.hours - 1, minutes: 59 };
-        } else if (prev.days > 0) {
-          return { ...prev, days: prev.days - 1, hours: 23, minutes: 59 };
-        }
-        return prev;
-      });
-    }, 60000);
+    const updateTimer = () => {
+      const state = JSON.parse(localStorage.getItem('blindfold_dates') || '{}');
+      const nextDropDateStr = state.dateState?.nextDropDate;
 
+      if (nextDropDateStr) {
+        const nextDropDate = new Date(nextDropDateStr);
+        const now = new Date();
+        const diff = nextDropDate - now;
+
+        if (diff > 0) {
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          setTimeLeft({ days, hours, minutes, seconds });
+        } else {
+          setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        }
+      }
+    };
+
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Load user plan
+  useEffect(() => {
+    const loadPlan = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserPlan(user.user_metadata?.plan || 'free');
+      }
+    };
+    loadPlan();
   }, []);
 
   // Data loading effect
@@ -160,7 +190,180 @@ export default function Home() {
 
   const handleAccept = async () => {
     if (!currentDrop) return;
-    await saveDateState({ currentDateId: currentDrop.id, accepted: true });
+
+    // Calculate next drop date based on frequency
+    const frequency = preferences?.frequency || 'weekly';
+    const now = new Date();
+    let nextDropDate;
+
+    switch (frequency) {
+      case 'weekly':
+        nextDropDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'biweekly':
+        nextDropDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+        break;
+      case 'monthly':
+        nextDropDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        nextDropDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    }
+
+    await saveDateState({
+      currentDateId: currentDrop.id,
+      accepted: true,
+      nextDropDate: nextDropDate.toISOString()
+    });
+
+    setIsAccepted(true);
+  };
+
+  const handleReroll = async () => {
+    if (!currentDrop || userPlan !== 'pro') return;
+
+    // Store current date as previous
+    setPreviousDate(currentDrop);
+
+    // Get new random date (different from current)
+    let dateIdeas = SAMPLE_DATE_IDEAS;
+    try {
+      const { data: supabaseData } = await supabase.from('date_ideas').select('*');
+      if (supabaseData && supabaseData.length > 0) {
+        dateIdeas = supabaseData.map(d => ({
+          id: d.id,
+          title: d.title,
+          category: d.category,
+          description: d.description,
+          roleA: { label: d.rolea_label, instruction: d.rolea_instruction },
+          roleB: { label: d.roleb_label, instruction: d.roleb_instruction },
+          budget: d.budget,
+          duration: d.duration
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching date ideas for reroll:', error);
+    }
+
+    setIsRerolling(true);
+    setIsFlipping(true);
+
+    setTimeout(async () => {
+      let newDrop;
+      const attempts = 10;
+      for (let i = 0; i < attempts; i++) {
+        const randomDrop = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
+        if (randomDrop.id !== currentDrop.id) {
+          newDrop = randomDrop;
+          break;
+        }
+      }
+      if (!newDrop) newDrop = dateIdeas[0];
+
+      setPreviousDate(currentDrop);
+      setCurrentDrop(newDrop);
+      setIsRevealed(null);
+      setHasRerolled(true);
+      setShowingRerolledDate(true);
+      await saveDateState({ currentDateId: newDrop.id, accepted: false, rerolled: true });
+      setIsFlipping(false);
+      setIsRerolling(false);
+      setShowRerollDialog(false);
+    }, 600);
+  };
+
+  const handleComplete = async () => {
+    if (!currentDrop) return;
+
+    // Save to completed_dates
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('completed_dates').insert({
+        user_id: user.id,
+        date_idea_id: currentDrop.id,
+        title: currentDrop.title,
+        category: currentDrop.category,
+        budget: currentDrop.budget,
+        completed_date: new Date().toISOString()
+      });
+    }
+
+    // Reset state for next date
+    setIsAccepted(false);
+    setIsRevealed(null);
+
+    // Get new random date
+    let dateIdeas = SAMPLE_DATE_IDEAS;
+    try {
+      const { data: supabaseData } = await supabase.from('date_ideas').select('*');
+      if (supabaseData && supabaseData.length > 0) {
+        dateIdeas = supabaseData.map(d => ({
+          id: d.id,
+          title: d.title,
+          category: d.category,
+          description: d.description,
+          roleA: { label: d.rolea_label, instruction: d.rolea_instruction },
+          roleB: { label: d.roleb_label, instruction: d.roleb_instruction },
+          budget: d.budget,
+          duration: d.duration
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching date ideas:', error);
+    }
+
+    let newDrop;
+    const attempts = 10;
+    for (let i = 0; i < attempts; i++) {
+      const randomDrop = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
+      if (randomDrop.id !== currentDrop.id) {
+        newDrop = randomDrop;
+        break;
+      }
+    }
+    if (!newDrop) newDrop = dateIdeas[0];
+
+    setCurrentDrop(newDrop);
+    setPreviousDate(null);
+    setHasRerolled(false);
+    setShowingRerolledDate(false);
+    await saveDateState({ currentDateId: newDrop.id, accepted: false });
+  };
+
+  const handleToggleDate = () => {
+    if (!previousDate || !hasRerolled) return;
+
+    setIsFlipping(true);
+
+    setTimeout(async () => {
+      if (showingRerolledDate) {
+        // Switch back to original
+        setCurrentDrop(previousDate);
+        await saveDateState({ currentDateId: previousDate.id, accepted: false, rerolled: false });
+        setShowingRerolledDate(false);
+      } else {
+        // Switch to rerolled date
+        const rerolledDate = currentDrop;
+        setCurrentDrop(previousDate);
+        setPreviousDate(rerolledDate);
+        await saveDateState({ currentDateId: previousDate.id, accepted: false, rerolled: true });
+        setShowingRerolledDate(true);
+      }
+      setIsFlipping(false);
+    }, 600);
+  };
+
+  const handleRestore = async () => {
+    if (!previousDate) return;
+
+    setIsFlipping(true);
+
+    setTimeout(async () => {
+      setCurrentDrop(previousDate);
+      await saveDateState({ currentDateId: previousDate.id, accepted: false, rerolled: false });
+      setPreviousDate(null);
+      setIsFlipping(false);
+    }, 600);
   };
 
   const names = preferences?.names || { yourName: 'You', partnerName: 'Partner' };
@@ -170,7 +373,7 @@ export default function Home() {
       {/* Desktop Header */}
       <header className="border-b border-[#1a1a1a] bg-[#0a0a0a] hidden lg:block">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <button onClick={() => navigate('/home')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <button onClick={() => navigate('/home')} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -178,10 +381,10 @@ export default function Home() {
             </div>
             <span className="font-heading text-xl font-semibold text-white">blindfold</span>
           </button>
-          <nav className="flex items-center gap-6">
-            <a href="/home" className="text-white font-medium">Home</a>
-            <a href="/dates" className="text-[#b0b0b0] hover:text-white transition-colors">Dates</a>
-            <a href="/profile" className="text-[#b0b0b0] hover:text-white transition-colors">Profile</a>
+          <nav className="flex items-center gap-8">
+            <a href="/home" className="text-white font-medium cursor-pointer">Home</a>
+            <a href="/my-dates" className="text-[#b0b0b0] hover:text-white transition-colors cursor-pointer">My Dates</a>
+            <a href="/profile" className="text-[#b0b0b0] hover:text-white transition-colors cursor-pointer">Profile</a>
           </nav>
         </div>
       </header>
@@ -189,7 +392,7 @@ export default function Home() {
       {/* Mobile Header */}
       <header className="lg:hidden border-b border-[#1a1a1a] bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <button onClick={() => navigate('/home')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <button onClick={() => navigate('/home')} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -201,18 +404,19 @@ export default function Home() {
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-12 pb-24 lg:pb-12">
-        <div className="grid lg:grid-cols-3 gap-8 items-start">
-          {/* Main Content - Date Card */}
-          <div className="lg:col-span-2">
-            <div className="mb-6">
-              <p className="text-[#b0b0b0] font-body text-sm mb-2">
-                Hey, {names.yourName} & {names.partnerName}
-              </p>
-              <h1 className="text-4xl font-heading bg-gradient-to-r from-[#fd297b] to-[#ff655b] bg-clip-text text-transparent">
-                Your Next Adventure
-              </h1>
-            </div>
+        {/* Header - full width */}
+        <div className="mb-8">
+          <p className="text-[#b0b0b0] font-body text-sm mb-1">
+            Hey, {names.yourName} & {names.partnerName}
+          </p>
+          <h1 className="text-4xl font-heading bg-gradient-to-r from-[#fd297b] to-[#ff655b] bg-clip-text text-transparent">
+            {isAccepted ? 'Your Current Adventure' : 'Your Next Adventure'}
+          </h1>
+        </div>
 
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Main Content - Date Card */}
+          <div className="lg:col-span-3">
             {/* Main Drop Card */}
             <div className="relative">
               {!isRevealed ? (
@@ -327,61 +531,144 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Action Button */}
-                    <button
-                      onClick={handleAccept}
-                      className="w-full py-4 px-8 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold text-lg shadow-lg shadow-[#fd297b]/30 hover:opacity-90 transition-opacity"
-                    >
-                      We're Doing This
-                    </button>
+                    {/* Accepted State */}
+                    {isAccepted && (
+                      <div className="border-t border-[#2a2a2a] pt-6">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </div>
+                            <span className="text-green-400 font-semibold">Adventure Accepted</span>
+                          </div>
+                          <button
+                            onClick={handleComplete}
+                            className="w-full sm:w-auto py-2 px-6 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity cursor-pointer"
+                          >
+                            ✓ Complete Adventure
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Buttons - only show when not accepted */}
+                    {!isAccepted && (
+                      <>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <button
+                            onClick={handleAccept}
+                            className="flex-1 py-4 px-8 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold text-lg shadow-lg shadow-[#fd297b]/30 hover:opacity-90 transition-opacity"
+                          >
+                            We're Doing This
+                          </button>
+                          {userPlan === 'pro' && !hasRerolled && (
+                            <button
+                              onClick={() => setShowRerollDialog(true)}
+                              disabled={isRerolling}
+                              className="flex-1 py-4 px-8 rounded-full bg-[#2a2a2a] text-white font-semibold text-lg border border-[#3a3a3a] hover:bg-[#333] transition-colors disabled:opacity-50 cursor-pointer"
+                            >
+                              {isRerolling ? 'Finding new date...' : '🎲 Re-roll'}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Toggle between original and rerolled date */}
+                        {hasRerolled && previousDate && (
+                          <div className="mt-4 space-y-3">
+                            <button
+                              onClick={handleToggleDate}
+                              className="w-full py-3 px-6 rounded-full bg-gradient-to-r from-[#fd297b]/20 to-[#ff655b]/20 text-white font-medium border border-[#fd297b]/50 hover:border-[#fd297b] transition-colors cursor-pointer flex items-center justify-center gap-2"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M23 4v6h-6" />
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                              </svg>
+                              Switch to {showingRerolledDate ? 'original' : 'rerolled'} date
+                            </button>
+                            <p className="text-xs text-[#6e6e6e] text-center">
+                              Maximum of 1 re-roll possible
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Re-roll Dialog */}
+              {showRerollDialog && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6">
+                  <div className="bg-[#1a1a1a] rounded-3xl p-8 max-w-md w-full border border-[#2a2a2a]">
+                    <div className="text-center mb-6">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                          <path d="M23 4v6h-6" />
+                          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-heading text-white mb-2">Re-roll your date?</h3>
+                      <p className="text-[#b0b0b0] font-body">
+                        This will replace your current mystery date with a new one. You can restore the previous date if you change your mind.
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowRerollDialog(false)}
+                        className="flex-1 py-3 px-4 rounded-full bg-[#2a2a2a] text-white font-semibold hover:bg-[#333] transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleReroll}
+                        className="flex-1 py-3 px-4 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold hover:opacity-90 transition-opacity cursor-pointer"
+                      >
+                        Re-roll
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Sidebar - Stats & Quick Actions */}
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <div className="bg-[#1a1a1a] rounded-2xl p-6 border border-[#2a2a2a]">
-              <h3 className="text-lg font-heading text-white mb-4">Your Progress</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#b0b0b0]">Dates Completed</span>
-                  <span className="text-2xl font-heading text-white">7</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#b0b0b0]">Week Streak</span>
-                  <span className="text-2xl font-heading text-[#fd297b]">3</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#b0b0b0]">Rank</span>
-                  <span className="text-2xl font-heading text-white">Top 12%</span>
-                </div>
-              </div>
-            </div>
+          {/* Sidebar - Countdown */}
+          <div className="lg:col-span-1">
+            <div className="bg-[#1a1a1a] rounded-2xl p-6 border border-[#2a2a2a] sticky top-6">
+              <h3 className="text-lg font-heading text-white mb-4">Next Drop In</h3>
 
-            {/* Quick Links */}
-            <div className="bg-[#1a1a1a] rounded-2xl p-6 border border-[#2a2a2a]">
-              <h3 className="text-lg font-heading text-white mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <a href="/dates" className="flex items-center gap-3 p-3 rounded-xl bg-[#0a0a0a] hover:bg-[#1a1a1a] transition-colors">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="[#fd297b]" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                  <span className="text-white">View Past Dates</span>
-                </a>
-                <a href="/profile" className="flex items-center gap-3 p-3 rounded-xl bg-[#0a0a0a] hover:bg-[#1a1a1a] transition-colors">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="[#fd297b]" strokeWidth="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  <span className="text-white">Edit Preferences</span>
-                </a>
+              {/* Countdown */}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
+                  <div className="text-3xl font-heading bg-gradient-to-r from-[#fd297b] to-[#ff655b] bg-clip-text text-transparent">{timeLeft.days}</div>
+                  <div className="text-xs text-[#6e6e6e] font-body mt-1">Days</div>
+                </div>
+                <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
+                  <div className="text-3xl font-heading bg-gradient-to-r from-[#fd297b] to-[#ff655b] bg-clip-text text-transparent">{timeLeft.hours}</div>
+                  <div className="text-xs text-[#6e6e6e] font-body mt-1">Hours</div>
+                </div>
+                <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
+                  <div className="text-3xl font-heading bg-gradient-to-r from-[#fd297b] to-[#ff655b] bg-clip-text text-transparent">{timeLeft.minutes}</div>
+                  <div className="text-xs text-[#6e6e6e] font-body mt-1">Minutes</div>
+                </div>
+                <div className="bg-[#0a0a0a] rounded-xl p-4 text-center">
+                  <div className="text-3xl font-heading bg-gradient-to-r from-[#fd297b] to-[#ff655b] bg-clip-text text-transparent">{timeLeft.seconds}</div>
+                  <div className="text-xs text-[#6e6e6e] font-body mt-1">Seconds</div>
+                </div>
               </div>
+
+              {/* Progress bar */}
+              <div className="w-full bg-[#2a2a2a] rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] rounded-full transition-all duration-1000"
+                  style={{ width: '65%' }}
+                />
+              </div>
+              <p className="text-xs text-[#6e6e6e] font-body mt-3 text-center">
+                Until your next mystery date
+              </p>
             </div>
           </div>
         </div>

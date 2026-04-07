@@ -34,3 +34,5 @@ dist-ssr
 ai-planner/
 test-app/
 test/
+
+.vercel

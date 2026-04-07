@@ -28,7 +28,7 @@ export default function Landing() {
     if (isLoggedIn) {
       navigate('/home');
     } else {
-      navigate('/auth?mode=signup');
+      navigate('/register');
     }
   };
 
@@ -85,20 +85,34 @@ export default function Landing() {
 
         {/* Navigation */}
         <nav className="relative z-10 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
             </div>
             <span className="font-heading text-xl font-semibold text-white">blindfold</span>
-          </div>
-          <button
-            onClick={() => isLoggedIn ? navigate('/home') : navigate('/auth?mode=signin')}
-            className="px-6 py-2 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-medium hover:opacity-90 transition-opacity"
-          >
-            {isLoggedIn ? 'Go to Dashboard' : 'Sign In'}
           </button>
+          <div className="flex items-center gap-8">
+            <a
+              href="/"
+              className="text-[#b0b0b0] hover:text-white transition-colors font-medium"
+            >
+              Home
+            </a>
+            <a
+              href="/pricing"
+              className="text-[#b0b0b0] hover:text-white transition-colors font-medium"
+            >
+              Pricing
+            </a>
+            <button
+              onClick={() => isLoggedIn ? navigate('/home') : navigate('/auth?mode=signin')}
+              className="px-6 py-2 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-medium hover:opacity-90 transition-opacity"
+            >
+              {isLoggedIn ? 'Go to Dashboard' : 'Sign In'}
+            </button>
+          </div>
         </nav>
 
         {/* Hero Content */}

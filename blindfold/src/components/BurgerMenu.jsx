@@ -70,6 +70,17 @@ export default function BurgerMenu() {
 
         {/* Menu Content */}
         <div className="relative z-[10000] flex flex-col items-center justify-center min-h-screen px-6">
+          {/* Close Button */}
+          <button
+            onClick={() => setIsOpen(false)}
+            className="absolute top-8 right-8 p-2 text-white hover:text-[#fd297b] transition-colors"
+            aria-label="Close menu"
+          >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+
           <nav className="flex flex-col items-center gap-2">
             {menuItems.map((item, index) => (
               <NavLink

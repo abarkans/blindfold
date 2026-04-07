@@ -81,6 +81,9 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-black">
+      {/* Burger Menu Overlay - rendered at root level to avoid stacking context issues */}
+      <BurgerMenu />
+
       {/* Hero Section */}
       <header className="relative">
         {/* Background gradient */}
@@ -119,8 +122,18 @@ export default function Landing() {
             </button>
           </div>
 
-          {/* Mobile Burger Menu Component */}
-          <BurgerMenu />
+          {/* Mobile Burger Menu Button - renders inside nav, but overlay is at root */}
+          <div className="md:hidden">
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('toggle-burger-menu'))}
+              className="p-2 text-white hover:text-[#fd297b] transition-colors"
+              aria-label="Open menu"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 12h18M3 6h18M3 18h18" />
+              </svg>
+            </button>
+          </div>
         </nav>
 
         {/* Hero Content */}

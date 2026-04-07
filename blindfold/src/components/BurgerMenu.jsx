@@ -26,6 +26,11 @@ export default function BurgerMenu() {
       }
     };
     checkUser();
+
+    // Listen for toggle event from landing page button
+    const handleToggle = () => setIsOpen(prev => !prev);
+    window.addEventListener('toggle-burger-menu', handleToggle);
+    return () => window.removeEventListener('toggle-burger-menu', handleToggle);
   }, []);
 
   useEffect(() => {
@@ -51,34 +56,9 @@ export default function BurgerMenu() {
 
   return (
     <>
-      {/* Burger Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="md:hidden relative z-[100] p-2 text-white hover:text-[#fd297b] transition-colors"
-        aria-label={isOpen ? 'Close menu' : 'Open menu'}
-      >
-        <div className="w-6 h-6 relative flex items-center justify-center">
-          <span
-            className={`absolute w-6 h-0.5 bg-current transform transition-all duration-300 ease-out ${
-              isOpen ? 'rotate-45' : '-translate-y-1.5'
-            }`}
-          />
-          <span
-            className={`absolute w-6 h-0.5 bg-current transform transition-all duration-300 ease-out ${
-              isOpen ? 'opacity-0' : 'opacity-100'
-            }`}
-          />
-          <span
-            className={`absolute w-6 h-0.5 bg-current transform transition-all duration-300 ease-out ${
-              isOpen ? '-rotate-45' : 'translate-y-1.5'
-            }`}
-          />
-        </div>
-      </button>
-
       {/* Full Screen Overlay */}
       <div
-        className={`fixed inset-0 z-[99] md:hidden transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[9999] md:hidden transition-opacity duration-300 ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -89,7 +69,7 @@ export default function BurgerMenu() {
         />
 
         {/* Menu Content */}
-        <div className="relative z-[100] flex flex-col items-center justify-center min-h-screen px-6">
+        <div className="relative z-[10000] flex flex-col items-center justify-center min-h-screen px-6">
           <nav className="flex flex-col items-center gap-2">
             {menuItems.map((item, index) => (
               <NavLink

@@ -61,7 +61,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black">
       {/* Desktop Header */}
-      <header className="border-b border-[#1a1a1a] bg-[#0a0a0a]">
+      <header className="border-b border-[#1a1a1a] bg-[#0a0a0a] hidden lg:block">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <button onClick={() => navigate('/home')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
@@ -79,7 +79,21 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      {/* Mobile Header */}
+      <header className="lg:hidden border-b border-[#1a1a1a] bg-[#0a0a0a]">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <button onClick={() => navigate('/home')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </div>
+            <span className="font-heading text-xl font-semibold text-white">blindfold</span>
+          </button>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-6 py-12 pb-24 lg:pb-12">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content - Date Card */}
           <div className="lg:col-span-2">
@@ -265,6 +279,9 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 }

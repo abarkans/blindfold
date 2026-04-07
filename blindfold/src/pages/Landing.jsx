@@ -153,11 +153,11 @@ export default function Landing() {
       {/* Features Section */}
       <section className="px-6 py-20 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16 px-4">
+          <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-white mb-4">
               Never Run Out of Date Ideas
             </h2>
-            <p className="text-[#b0b0b0] text-lg max-w-2xl mx-auto">
+            <p className="text-[#b0b0b0] text-lg max-w-2xl mx-auto text-center">
               Blindfold takes the stress out of date planning. Get personalized mystery date ideas that you both reveal and decide on together.
             </p>
           </div>

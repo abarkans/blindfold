@@ -38,9 +38,8 @@ export default function Register() {
       if (error) throw error;
 
       if (data && data.user) {
-        // Email confirmation is disabled in dev, so redirect to home
-        // In production, this would wait for email confirmation
-        navigate('/home');
+        // Redirect to onboarding after successful registration
+        navigate('/onboarding');
       }
     } catch (err) {
       setError(err.message);

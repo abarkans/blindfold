@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabase';
 import { hasCompletedOnboarding } from '../utils/storage';
 import { useEffect, useState } from 'react';
 
+// Couple image for hero banner
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&h=600&fit=crop';
+
 export default function Landing() {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -123,7 +126,7 @@ export default function Landing() {
             <div className="flex justify-center lg:justify-end">
               <div className="relative w-full max-w-lg aspect-square rounded-3xl overflow-hidden shadow-2xl shadow-[#fd297b]/20">
                 <img
-                  src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&h=600&fit=crop"
+                  src={HERO_IMAGE}
                   alt="Happy couple on a date"
                   className="w-full h-full object-cover"
                 />

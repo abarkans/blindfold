@@ -78,8 +78,8 @@ export default function Home() {
             title: d.title,
             category: d.category,
             description: d.description,
-            roleA: { label: d.roleA_label, instruction: d.roleA_instruction },
-            roleB: { label: d.roleB_label, instruction: d.roleB_instruction },
+            roleA: { label: d.rolea_label, instruction: d.rolea_instruction },
+            roleB: { label: d.roleb_label, instruction: d.roleb_instruction },
             budget: d.budget,
             duration: d.duration
           }));
@@ -201,7 +201,7 @@ export default function Home() {
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-12 pb-24 lg:pb-12">
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8 items-start">
           {/* Main Content - Date Card */}
           <div className="lg:col-span-2">
             <div className="mb-6">

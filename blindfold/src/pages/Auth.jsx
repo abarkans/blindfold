@@ -21,6 +21,7 @@ export default function Auth() {
     try {
       if (isSignUp) {
         const { data, error } = await signUp(email, password);
+        console.log('SignUp result:', { data, error });
         if (error) {
           if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
             setError('This email is already registered. Please sign in instead.');
@@ -33,6 +34,11 @@ export default function Auth() {
         if (data && data.user) {
           localStorage.setItem('pending_onboarding', 'true');
           setShowCheckInbox(true);
+          console.log('Showing check inbox screen');
+        } else {
+          // Even without user data (email confirmation disabled), show success screen
+          setShowCheckInbox(true);
+          console.log('Showing check inbox screen (no user data)');
         }
         return;
       } else {
@@ -72,7 +78,7 @@ export default function Auth() {
         {/* Logo - Top Left */}
         <div className="fixed top-0 left-0 right-0">
           <div className="max-w-7xl mx-auto px-6 py-4">
-            <button onClick={() => navigate('/')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <button onClick={() => navigate('/')} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -88,27 +94,28 @@ export default function Auth() {
           <div className="text-center">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="7" width="18" height="13" rx="2" />
-                <path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
-                <path d="M12 12v5" />
-                <path d="M9 14l3 3 3-3" />
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
             </div>
             <h1 className="text-3xl font-heading text-white mb-2">
-              Check Your Inbox
+              Account Created!
             </h1>
             <p className="text-[#b0b0b0] font-body mb-8">
-              We've sent a confirmation link to<br />
+              Check your email to verify your account<br />
               <span className="text-white">{email}</span>
             </p>
             <button
-              onClick={() => setIsSignUp(false)}
-              className="w-full py-4 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold hover:opacity-90 transition-opacity"
+              onClick={() => {
+                setShowCheckInbox(false);
+                setIsSignUp(false);
+              }}
+              className="w-full py-4 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold hover:opacity-90 transition-opacity cursor-pointer"
             >
-              I Confirmed, Sign Me In
+              Go to Sign In
             </button>
             <p className="text-[#6e6e6e] font-body text-sm mt-4">
-              After confirming your email, click above to sign in
+              After verifying your email, sign in to continue
             </p>
           </div>
         ) : (
@@ -116,17 +123,27 @@ export default function Auth() {
         <h1 className="text-3xl font-heading text-white text-center mb-2">
           {isSignUp ? 'Create Account' : 'Welcome Back'}
         </h1>
-        <p className="text-[#b0b0b0] font-body text-center mb-8">
-          {isSignUp ? 'Sign up to sync your dates' : 'Sign in to continue'}
-        </p>
+        <div className="mb-10">
+          <p className="text-[#b0b0b0] font-body text-center">
+            {isSignUp ? 'Sign up to sync your dates' : 'Sign in to continue'}
+          </p>
+        </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-full bg-red-900/30 border border-red-800 text-red-300 text-sm">
-            {error}
+          <div className="mb-8 p-4 rounded-2xl bg-red-900/30 border border-red-800 text-red-300 text-sm">
+            <p className="mb-2">{error}</p>
+            {error.includes('already registered') && (
+              <button
+                onClick={() => setIsSignUp(false)}
+                className="text-white font-semibold underline hover:text-[#fd297b] transition-colors cursor-pointer"
+              >
+                Log in instead
+              </button>
+            )}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <input
             type="email"
             value={email}
@@ -155,7 +172,7 @@ export default function Auth() {
 
         <button
           onClick={() => setIsSignUp(!isSignUp)}
-          className="w-full mt-6 py-3 text-[#b0b0b0] hover:text-white transition-colors"
+          className="w-full mt-6 py-3 text-[#b0b0b0] hover:text-white transition-colors cursor-pointer"
         >
           {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
         </button>

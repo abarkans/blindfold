@@ -42,6 +42,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Pointer cursor for all interactive elements */
+button, [role="button"], a {
+  cursor: pointer;
+}
+
 #root {
   min-height: 100vh;
   display: flex;

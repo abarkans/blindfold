@@ -61,8 +61,8 @@ export default function StepPlanSelect({ plan, setPlan, onBack, onConfirm, loadi
         </button>
         <button
           onClick={onConfirm}
-          disabled={loading}
-          className="flex-1 py-4 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold disabled:opacity-50 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+          disabled={loading || !plan}
+          className="flex-1 py-4 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
         >
           {loading ? (
             <>
@@ -73,7 +73,7 @@ export default function StepPlanSelect({ plan, setPlan, onBack, onConfirm, loadi
               Creating account...
             </>
           ) : (
-            `Continue with ${plan === 'free' ? 'Free' : 'Pro'} Plan`
+            plan ? `Continue with ${plan === 'free' ? 'Free' : 'Pro'} Plan` : 'Select a Plan'
           )}
         </button>
       </div>

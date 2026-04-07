@@ -47,7 +47,7 @@ export default function Onboarding() {
         console.error('Error saving user data:', error);
       }
       // Navigate to home/dashboard
-      navigate('/');
+      navigate('/home');
     }
   };
 
@@ -74,29 +74,27 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-black px-6 py-8 pb-24">
-      <div className="max-w-[430px] mx-auto">
       {/* Logo/Header - Top Left (matches home/login pages) */}
-      <div className="fixed top-0 left-0 right-0">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <button onClick={() => navigate('/home')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-            </div>
-            <span className="font-heading text-xl font-semibold text-white">blindfold</span>
-          </button>
-        </div>
+      <div className="fixed top-0 left-0 right-0 max-w-7xl mx-auto px-6 py-4">
+        <button onClick={() => navigate('/home')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </div>
+          <span className="font-heading text-xl font-semibold text-white">blindfold</span>
+        </button>
       </div>
 
-      <div className="pt-16">
-      <ProgressBar current={step} total={4} className="mb-8" />
+      <div className="max-w-[430px] mx-auto pt-20">
+        <ProgressBar current={step} total={4} className="mb-8" />
 
-      <div className="mt-8">
-        {step === 1 && <Step1 names={names} setNames={setNames} />}
-        {step === 2 && <Step2 vibes={vibes} setVibes={setVibes} />}
-        {step === 3 && <Step3 limits={limits} setLimits={setLimits} />}
-        {step === 4 && <Step4 frequency={frequency} setFrequency={setFrequency} />}
+        <div className="mt-8">
+          {step === 1 && <Step1 names={names} setNames={setNames} />}
+          {step === 2 && <Step2 vibes={vibes} setVibes={setVibes} />}
+          {step === 3 && <Step3 limits={limits} setLimits={setLimits} />}
+          {step === 4 && <Step4 frequency={frequency} setFrequency={setFrequency} />}
+        </div>
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-black border-t border-[#2a2a2a] px-6 py-4">
@@ -117,7 +115,6 @@ export default function Onboarding() {
             {step === 4 ? "Start Our Adventure" : "Next"}
           </button>
         </div>
-      </div>
       </div>
     </div>
   );

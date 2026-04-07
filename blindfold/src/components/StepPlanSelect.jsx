@@ -23,6 +23,13 @@ const proFeatures = [
 ];
 
 export default function StepPlanSelect({ plan, setPlan, onBack, onConfirm, loading }) {
+  console.log('StepPlanSelect - plan:', plan, 'loading:', loading);
+
+  const handlePlanSelect = (selectedPlan) => {
+    console.log('Plan selected:', selectedPlan);
+    setPlan(selectedPlan);
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -37,7 +44,7 @@ export default function StepPlanSelect({ plan, setPlan, onBack, onConfirm, loadi
           features={freeFeatures}
           limitations={freeLimitations}
           selected={plan === 'free'}
-          onClick={() => setPlan('free')}
+          onClick={() => handlePlanSelect('free')}
           highlighted={false}
         />
 
@@ -47,7 +54,7 @@ export default function StepPlanSelect({ plan, setPlan, onBack, onConfirm, loadi
           features={proFeatures}
           limitations={null}
           selected={plan === 'pro'}
-          onClick={() => setPlan('pro')}
+          onClick={() => handlePlanSelect('pro')}
           highlighted={true}
         />
       </div>

@@ -57,7 +57,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-black px-6 py-8 flex flex-col items-center justify-center">
-      <div className="w-full max-w-[420px]">
+      <div className="w-full max-w-[420px] md:max-w-2xl">
         {/* Logo */}
         <div className="fixed top-0 left-0 right-0">
           <div className="max-w-7xl mx-auto px-6 py-4">

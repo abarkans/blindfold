@@ -30,7 +30,7 @@ export default function StepPlanSelect({ plan, setPlan, onBack, onConfirm, loadi
         <p className="text-[#b0b0b0] font-body">Select the plan that works best for you</p>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid md:grid-cols-2 gap-4">
         <PlanCard
           name="Free"
           price={null}

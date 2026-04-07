@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { signIn, signUp } from '../lib/supabase';
@@ -171,7 +173,7 @@ export default function Auth() {
         </form>
 
         <button
-          onClick={() => setIsSignUp(!isSignUp)}
+          onClick={() => isSignUp ? navigate('/register') : setIsSignUp(true)}
           className="w-full mt-6 py-3 text-[#b0b0b0] hover:text-white transition-colors cursor-pointer"
         >
           {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}

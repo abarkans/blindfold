@@ -77,6 +77,15 @@ export default function StepPlanSelect({ plan, setPlan, onBack, onConfirm, loadi
           )}
         </button>
       </div>
+
+      <div className="text-center pt-4">
+        <p className="text-[#b0b0b0] font-body text-sm">
+          Already have an account?{' '}
+          <a href="/auth" className="text-white hover:text-[#fd297b] transition-colors cursor-pointer">
+            Sign In
+          </a>
+        </p>
+      </div>
     </div>
   );
 }

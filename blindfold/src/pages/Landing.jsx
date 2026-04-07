@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { hasCompletedOnboarding } from '../utils/storage';
 import { useEffect, useState } from 'react';
+import BurgerMenu from '../components/BurgerMenu';
 
 // Couple image for hero banner
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&h=600&fit=crop';
@@ -11,7 +12,6 @@ const HERO_IMAGE = 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2
 export default function Landing() {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in and has completed onboarding
@@ -119,53 +119,9 @@ export default function Landing() {
             </button>
           </div>
 
-          {/* Mobile Burger Menu */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-white"
-          >
-            {mobileMenuOpen ? (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 12h18M3 6h18M3 18h18" />
-              </svg>
-            )}
-          </button>
+          {/* Mobile Burger Menu Component */}
+          <BurgerMenu />
         </nav>
-
-        {/* Mobile Menu Overlay */}
-        {mobileMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 right-0 bg-[#0a0a0a] border-b border-[#1a1a1a] px-6 py-4 z-20">
-            <div className="flex flex-col gap-4">
-              <a
-                href="/"
-                className="text-[#b0b0b0] hover:text-white transition-colors font-medium py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Home
-              </a>
-              <a
-                href="/pricing"
-                className="text-[#b0b0b0] hover:text-white transition-colors font-medium py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Pricing
-              </a>
-              <button
-                onClick={() => {
-                  isLoggedIn ? navigate('/home') : navigate('/auth');
-                  setMobileMenuOpen(false);
-                }}
-                className="px-6 py-3 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-medium hover:opacity-90 transition-opacity"
-              >
-                {isLoggedIn ? 'Go to Dashboard' : 'Sign In'}
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Hero Content */}
         <div className="relative z-10 px-6 pt-16 pb-24 max-w-7xl mx-auto">

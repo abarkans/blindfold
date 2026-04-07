@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { signIn, signUp } from '../lib/supabase';
 import { getUserData } from '../utils/storage';
 
 export default function Auth() {
   const navigate = useNavigate();
-  const [isSignUp, setIsSignUp] = useState(true);
+  const [searchParams] = useSearchParams();
+  const [isSignUp, setIsSignUp] = useState(searchParams.get('mode') === 'signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -62,15 +63,19 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-black px-6 py-8 flex flex-col items-center justify-center">
       <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-          </div>
+        {/* Logo - Top Left */}
+        <div className="fixed top-0 left-0 w-full px-6 py-4">
+          <button onClick={() => navigate('/')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            </div>
+            <span className="font-heading text-xl font-semibold text-white">blindfold</span>
+          </button>
         </div>
 
+        <div className="mt-20">
         <h1 className="text-3xl font-heading text-white text-center mb-2">
           {isSignUp ? 'Create Account' : 'Welcome Back'}
         </h1>
@@ -117,6 +122,7 @@ export default function Auth() {
         >
           {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
         </button>
+        </div>
       </div>
     </div>
   );

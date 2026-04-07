@@ -91,7 +91,7 @@ export default function Landing() {
             <span className="font-heading text-xl font-semibold text-white">blindfold</span>
           </div>
           <button
-            onClick={() => isLoggedIn ? navigate('/home') : navigate('/auth')}
+            onClick={() => isLoggedIn ? navigate('/home') : navigate('/auth?mode=signin')}
             className="px-6 py-2 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-medium hover:opacity-90 transition-opacity"
           >
             {isLoggedIn ? 'Go to Dashboard' : 'Sign In'}
@@ -125,17 +125,23 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Phone Mockup */}
+            {/* Couple Image */}
             <div className="flex justify-center lg:justify-end">
-              <div className="w-[280px] h-[560px] rounded-[3rem] bg-[#1a1a1a] border-4 border-[#2a2a2a] shadow-2xl shadow-[#fd297b]/20 overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center animate-pulse">
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
+              <div className="relative w-full max-w-lg aspect-square rounded-3xl overflow-hidden shadow-2xl shadow-[#fd297b]/20">
+                <img
+                  src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&h=600&fit=crop"
+                  alt="Happy couple on a date"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-6 left-6 right-6">
+                  <div className="flex items-center gap-2 text-white">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                       </svg>
                     </div>
-                    <p className="text-[#6e6e6e] text-sm">Swipe to begin</p>
+                    <span className="font-heading text-sm">Mystery dates await</span>
                   </div>
                 </div>
               </div>

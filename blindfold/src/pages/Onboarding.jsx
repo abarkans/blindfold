@@ -76,13 +76,13 @@ export default function Onboarding() {
     <div className="min-h-screen bg-black px-6 py-8 pb-24">
       <div className="max-w-[430px] mx-auto">
       {/* Logo/Header */}
-      <div className="flex items-center justify-center mb-8">
+      <button onClick={() => navigate('/home')} className="flex items-center justify-center mb-8 hover:opacity-80 transition-opacity">
         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
         </div>
-      </div>
+      </button>
 
       <ProgressBar current={step} total={4} className="mb-8" />
 

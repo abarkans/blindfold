@@ -82,7 +82,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-black">
       {/* Hero Section */}
-      <header className="relative overflow-hidden">
+      <header className="relative">
         {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#fd297b]/20 via-transparent to-[#ff655b]/20" />
 

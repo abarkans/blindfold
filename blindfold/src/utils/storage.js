@@ -86,6 +86,9 @@ const RANDOM_DATES_KEY = 'blindfold_random_dates';
 
 // Get 1 random date ID, persisting it until cleared
 export const getRandomDateId = (dateIdeas) => {
+  if (!dateIdeas || dateIdeas.length === 0) {
+    return null;
+  }
   try {
     const stored = localStorage.getItem(RANDOM_DATES_KEY);
     if (stored) {
@@ -104,7 +107,7 @@ export const getRandomDateId = (dateIdeas) => {
   } catch (error) {
     console.error('Failed to get random date ID:', error);
     // Fallback to first date
-    return dateIdeas[0].id;
+    return dateIdeas[0]?.id || null;
   }
 };
 

@@ -1,10 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BottomNav, CategoryBadge } from '../components';
-import { completedDates, dateIdeas } from '../data/mockData';
+import { supabase } from '../lib/supabase';
+import { getDateState } from '../utils/storage';
 
 export default function Dates() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('completed');
+  const [completedDates, setCompletedDates] = useState([]);
+  const [dateState, setDateState] = useState(null);
+
+  useEffect(() => {
+    // Load completed dates from Supabase
+    const loadDates = async () => {
+      const state = await getDateState();
+      setDateState(state);
+
+      // Fetch completed dates from Supabase
+      const { data, error } = await supabase
+        .from('completed_dates')
+        .select('*')
+        .order('completedDate', { ascending: false });
+
+      if (!error && data) {
+        setCompletedDates(data);
+      }
+    };
+    loadDates();
+  }, []);
 
   return (
     <div className="min-h-screen bg-black">

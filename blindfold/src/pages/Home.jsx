@@ -1,8 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CategoryBadge, BottomNav } from '../components';
-import { dateIdeas } from '../data/mockData';
-import { getPreferences, saveDateState, getDateState, getRandomDateId } from '../utils/storage';
+import { getPreferences, saveDateState, getDateState } from '../utils/storage';
+import { supabase } from '../lib/supabase';
+
+// Sample date ideas for new users (can be replaced with Supabase fetch later)
+const SAMPLE_DATE_IDEAS = [
+  {
+    id: 1,
+    title: "Blind Taste Challenge",
+    category: "Food & Drink",
+    description: "One of you picks 5 mystery snacks from a store without the other seeing. Back home, taste them blindfolded and guess what you're eating.",
+    roleA: { label: "Navigator", instruction: "Pick the snacks solo — they must be unrecognisable." },
+    roleB: { label: "Curator", instruction: "Set up the blindfold station and scoring sheet." },
+    budget: 20,
+    duration: "2 hours"
+  },
+  {
+    id: 2,
+    title: "Sunset Rooftop Picnic",
+    category: "Outdoors",
+    description: "Find the highest accessible rooftop or viewpoint in your area. Pack a simple spread, bring a blanket, and watch the city shift from day to night.",
+    roleA: { label: "Navigator", instruction: "Research and navigate to the spot. Keep destination secret." },
+    roleB: { label: "Curator", instruction: "Pack the food, drinks, and blanket without asking questions." },
+    budget: 35,
+    duration: "3 hours"
+  }
+];
 
 export default function Home() {
   const navigate = useNavigate();
@@ -11,6 +35,7 @@ export default function Home() {
   const [isRevealed, setIsRevealed] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ days: 2, hours: 14, minutes: 32 });
   const [isFlipping, setIsFlipping] = useState(false);
+  const [currentDrop, setCurrentDrop] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -18,13 +43,31 @@ export default function Home() {
       setPreferences(prefs);
       setDateState(state);
       setIsRevealed(state?.currentDateId || null);
+
+      // Fetch date ideas from Supabase or use samples
+      let dateIdeas = [];
+      const { data, error } = await supabase.from('date_ideas').select('*');
+      if (!error && data && data.length > 0) {
+        dateIdeas = data;
+      } else {
+        dateIdeas = SAMPLE_DATE_IDEAS;
+      }
+
+      // Get or create current date
+      if (state?.currentDateId) {
+        const drop = dateIdeas.find(d => d.id === state.currentDateId);
+        if (drop) setCurrentDrop(drop);
+      } else {
+        // Pick random date for new users
+        const randomDrop = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
+        if (randomDrop) {
+          setCurrentDrop(randomDrop);
+          await saveDateState({ currentDateId: randomDrop.id, accepted: false });
+        }
+      }
     };
     loadData();
   }, []);
-
-  // Get 1 random date idea
-  const randomDateId = getRandomDateId(dateIdeas);
-  const currentDrop = dateIdeas.find(d => d.id === randomDateId);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -44,6 +87,7 @@ export default function Home() {
   }, []);
 
   const handleReveal = async () => {
+    if (!currentDrop) return;
     setIsFlipping(true);
     setTimeout(async () => {
       setIsRevealed(currentDrop.id);
@@ -53,6 +97,7 @@ export default function Home() {
   };
 
   const handleAccept = async () => {
+    if (!currentDrop) return;
     await saveDateState({ currentDateId: currentDrop.id, accepted: true });
   };
 

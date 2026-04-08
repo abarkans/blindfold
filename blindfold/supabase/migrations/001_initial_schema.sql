@@ -104,12 +104,17 @@ CREATE TABLE date_ideas (
   -- Structured fields (extracted from LLM output)
   title TEXT NOT NULL,
   description TEXT NOT NULL,
+  category TEXT, -- "outdoors", "food", "arts", "active", "cozy", "nightlife"
   location_name TEXT, -- Specific venue name if applicable
   location_address TEXT, -- Full address for maps
-  location_type TEXT, -- "restaurant", "activity", "experience", "mixed"
+  location_type TEXT, -- "restaurant", "activity", "experience", "mixed", "indoor", "outdoor"
+
+  -- Role instructions
+  navigator_instruction TEXT NOT NULL DEFAULT 'Plan the details secretly',
+  curator_instruction TEXT NOT NULL DEFAULT 'Follow your partner''s lead',
 
   -- Cost and time estimates
-  estimated_cost_min INTEGER, -- in dollars
+  estimated_cost_min INTEGER, -- in dollars/euros
   estimated_cost_max INTEGER,
   estimated_duration_minutes INTEGER,
 

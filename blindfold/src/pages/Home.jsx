@@ -6,12 +6,12 @@ import { CategoryBadge, BottomNav } from '../components';
 import { getPreferences, saveDateState, getDateState } from '../utils/storage';
 import { supabase } from '../lib/supabase';
 
-// Sample date ideas for new users (can be replaced with Supabase fetch later)
+// Sample date ideas for new users (fallback if no database ideas)
 const SAMPLE_DATE_IDEAS = [
   {
-    id: 1,
+    id: 'sample-1',
     title: "Blind Taste Challenge",
-    category: "Food & Drink",
+    category: "food",
     description: "One of you picks 5 mystery snacks from a store without the other seeing. Back home, taste them blindfolded and guess what you're eating.",
     roleA: { label: "Navigator", instruction: "Pick the snacks solo — they must be unrecognisable." },
     roleB: { label: "Curator", instruction: "Set up the blindfold station and scoring sheet." },
@@ -19,9 +19,9 @@ const SAMPLE_DATE_IDEAS = [
     duration: "2 hours"
   },
   {
-    id: 2,
+    id: 'sample-2',
     title: "Sunset Rooftop Picnic",
-    category: "Outdoors",
+    category: "outdoors",
     description: "Find the highest accessible rooftop or viewpoint in your area. Pack a simple spread, bring a blanket, and watch the city shift from day to night.",
     roleA: { label: "Navigator", instruction: "Research and navigate to the spot. Keep destination secret." },
     roleB: { label: "Curator", instruction: "Pack the food, drinks, and blanket without asking questions." },
@@ -29,6 +29,15 @@ const SAMPLE_DATE_IDEAS = [
     duration: "3 hours"
   }
 ];
+
+// Helper to format duration in minutes to readable string
+function formatDuration(minutes) {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (mins === 0) return `${hours} hours`;
+  return `${hours}h ${mins}m`;
+}
 
 export default function Home() {
   const navigate = useNavigate();
@@ -89,8 +98,6 @@ export default function Home() {
   // Data loading effect
   useEffect(() => {
     const loadData = async () => {
-      let dateIdeas = SAMPLE_DATE_IDEAS;
-
       try {
         const [prefs, state] = await Promise.all([getPreferences(), getDateState()]);
         console.log('Home: loaded prefs=', prefs, 'state=', state);
@@ -98,59 +105,89 @@ export default function Home() {
         setDateState(state);
         setIsRevealed(state?.currentDateId || null);
 
-        // Fetch date ideas from Supabase
-        const { data: supabaseData, error: supabaseError } = await supabase.from('date_ideas').select('*');
-        console.log('Home: Supabase date_ideas:', { data: supabaseData, error: supabaseError });
-        if (!supabaseError && supabaseData && supabaseData.length > 0) {
+        // Get current user's couple ID
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.error('No authenticated user');
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch couple info
+        const { data: couple } = await supabase
+          .from('couples')
+          .select('id, navigator_id')
+          .or(`navigator_id.eq.${user.id},curator_id.eq.${user.id}`)
+          .single();
+
+        if (!couple) {
+          console.error('No couple found for user');
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch date ideas for this couple
+        const { data: supabaseData, error: supabaseError } = await supabase
+          .from('date_ideas')
+          .select('*')
+          .eq('couple_id', couple.id)
+          .order('created_at', { ascending: false });
+
+        if (supabaseError) {
+          console.error('Error fetching date ideas:', supabaseError);
+        }
+
+        let dateIdeas = [];
+        if (supabaseData && supabaseData.length > 0) {
           // Transform Supabase data to match our app's format
           dateIdeas = supabaseData.map(d => ({
             id: d.id,
             title: d.title,
-            category: d.category,
+            category: d.category || 'general',
             description: d.description,
-            roleA: { label: d.rolea_label, instruction: d.rolea_instruction },
-            roleB: { label: d.roleb_label, instruction: d.roleb_instruction },
-            budget: d.budget,
-            duration: d.duration
+            roleA: { label: 'Navigator', instruction: d.navigator_instruction || 'Plan the details secretly' },
+            roleB: { label: 'Curator', instruction: d.curator_instruction || 'Follow your partner\'s lead' },
+            budget: d.estimated_cost_min || 50,
+            duration: formatDuration(d.estimated_duration_minutes || 120)
           }));
-        }
-      } catch (error) {
-        console.error('Error loading home data:', error);
-      }
-
-      // Get or create current date
-      const state = await getDateState();
-      console.log('Home: current state=', state, 'dateIdeas=', dateIdeas);
-
-      if (state?.currentDateId) {
-        // Convert to number for comparison since Supabase returns strings
-        const targetId = typeof state.currentDateId === 'string'
-          ? parseInt(state.currentDateId, 10)
-          : state.currentDateId;
-        const drop = dateIdeas.find(d => {
-          const dropId = typeof d.id === 'string' ? parseInt(d.id, 10) : d.id;
-          return dropId === targetId;
-        });
-        console.log('Home: found drop=', drop, 'for id=', targetId);
-        if (drop) {
-          setCurrentDrop(drop);
         } else {
+          // Fallback to sample ideas if no database ideas
+          dateIdeas = SAMPLE_DATE_IDEAS;
+        }
+
+        console.log('Home: dateIdeas=', dateIdeas);
+
+        // Get or create current date
+        if (state?.currentDateId) {
+          const targetId = state.currentDateId;
+          const drop = dateIdeas.find(d => d.id === targetId);
+          console.log('Home: found drop=', drop, 'for id=', targetId);
+
+          if (drop) {
+            setCurrentDrop(drop);
+          } else {
+            // Date idea not found, pick a new one
+            const randomDrop = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
+            if (randomDrop) {
+              setCurrentDrop(randomDrop);
+              await saveDateState({ currentDateId: randomDrop.id, accepted: false });
+            }
+          }
+        } else {
+          // New user - pick random date
           const randomDrop = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
+          console.log('Home: new user, picked randomDrop=', randomDrop);
           if (randomDrop) {
             setCurrentDrop(randomDrop);
             await saveDateState({ currentDateId: randomDrop.id, accepted: false });
           }
         }
-      } else {
-        const randomDrop = dateIdeas[Math.floor(Math.random() * dateIdeas.length)];
-        console.log('Home: new user, picked randomDrop=', randomDrop);
-        if (randomDrop) {
-          setCurrentDrop(randomDrop);
-          await saveDateState({ currentDateId: randomDrop.id, accepted: false });
-        }
-      }
 
-      setIsLoading(false);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error loading home data:', error);
+        setIsLoading(false);
+      }
     };
     loadData();
   }, []);
@@ -181,6 +218,20 @@ export default function Home() {
   const handleReveal = async () => {
     if (!currentDrop) return;
     setIsFlipping(true);
+
+    // Update status in database
+    const { error } = await supabase
+      .from('date_ideas')
+      .update({
+        status: 'revealed',
+        revealed_at: new Date().toISOString()
+      })
+      .eq('id', currentDrop.id);
+
+    if (error) {
+      console.error('Error updating date idea status:', error);
+    }
+
     setTimeout(async () => {
       setIsRevealed(currentDrop.id);
       setIsFlipping(false);
@@ -190,6 +241,16 @@ export default function Home() {
 
   const handleAccept = async () => {
     if (!currentDrop) return;
+
+    // Update status in database
+    const { error } = await supabase
+      .from('date_ideas')
+      .update({ status: 'completed' })
+      .eq('id', currentDrop.id);
+
+    if (error) {
+      console.error('Error updating date idea status:', error);
+    }
 
     // Calculate next drop date based on frequency
     const frequency = preferences?.frequency || 'weekly';
@@ -517,7 +578,7 @@ export default function Home() {
                   transition-all duration-500
                   ${isFlipping ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}
                 `}>
-                  <div className="space-y-6">
+                  <div className={`space-y-6 ${!isAccepted ? 'blur-sm' : ''}`}>
                     {/* Category & Title */}
                     <div>
                       <CategoryBadge category={currentDrop.category} size="md" />
@@ -596,49 +657,49 @@ export default function Home() {
                         </div>
                       </div>
                     )}
-
-                    {/* Action Buttons - only show when not accepted */}
-                    {!isAccepted && (
-                      <>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          <button
-                            onClick={handleAccept}
-                            className="flex-1 py-4 px-8 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold text-lg shadow-lg shadow-[#fd297b]/30 hover:opacity-90 transition-opacity"
-                          >
-                            We're Doing This
-                          </button>
-                          {userPlan === 'pro' && !hasRerolled && (
-                            <button
-                              onClick={() => setShowRerollDialog(true)}
-                              disabled={isRerolling}
-                              className="flex-1 py-4 px-8 rounded-full bg-[#2a2a2a] text-white font-semibold text-lg border border-[#3a3a3a] hover:bg-[#333] transition-colors disabled:opacity-50 cursor-pointer"
-                            >
-                              {isRerolling ? 'Finding new date...' : '🎲 Re-roll'}
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Toggle between original and rerolled date */}
-                        {hasRerolled && previousDate && (
-                          <div className="mt-4 space-y-3">
-                            <button
-                              onClick={handleToggleDate}
-                              className="w-full py-3 px-6 rounded-full bg-gradient-to-r from-[#fd297b]/20 to-[#ff655b]/20 text-white font-medium border border-[#fd297b]/50 hover:border-[#fd297b] transition-colors cursor-pointer flex items-center justify-center gap-2"
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M23 4v6h-6" />
-                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                              </svg>
-                              Switch to {showingRerolledDate ? 'original' : 'rerolled'} date
-                            </button>
-                            <p className="text-xs text-[#6e6e6e] text-center">
-                              Maximum of 1 re-roll possible
-                            </p>
-                          </div>
-                        )}
-                      </>
-                    )}
                   </div>
+
+                  {/* Action Buttons - outside blur container so they remain clickable */}
+                  {!isAccepted && (
+                    <div className="border-t border-[#2a2a2a] pt-6 mt-6">
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                          onClick={handleAccept}
+                          className="flex-1 py-4 px-8 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold text-lg shadow-lg shadow-[#fd297b]/30 hover:opacity-90 transition-opacity"
+                        >
+                          Reveal the date
+                        </button>
+                        {userPlan === 'pro' && !hasRerolled && (
+                          <button
+                            onClick={() => setShowRerollDialog(true)}
+                            disabled={isRerolling}
+                            className="flex-1 py-4 px-8 rounded-full bg-[#2a2a2a] text-white font-semibold text-lg border border-[#3a3a3a] hover:bg-[#333] transition-colors disabled:opacity-50 cursor-pointer"
+                          >
+                            {isRerolling ? 'Finding new date...' : '🎲 Re-roll'}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Toggle between original and rerolled date */}
+                      {hasRerolled && previousDate && (
+                        <div className="mt-4 space-y-3">
+                          <button
+                            onClick={handleToggleDate}
+                            className="w-full py-3 px-6 rounded-full bg-gradient-to-r from-[#fd297b]/20 to-[#ff655b]/20 text-white font-medium border border-[#fd297b]/50 hover:border-[#fd297b] transition-colors cursor-pointer flex items-center justify-center gap-2"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M23 4v6h-6" />
+                              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                            </svg>
+                            Switch to {showingRerolledDate ? 'original' : 'rerolled'} date
+                          </button>
+                          <p className="text-xs text-[#6e6e6e] text-center">
+                            Maximum of 1 re-roll possible
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

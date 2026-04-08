@@ -4,7 +4,6 @@ export { default as Home } from './Home';
 export { default as Profile } from './Profile';
 export { default as Auth } from './Auth';
 export { default as AuthCallback } from './AuthCallback';
-export { default as Pricing } from './Pricing';
 export { default as Register } from './Register';
 export { default as Dashboard } from './Dashboard';
 export { default as MyDates } from './MyDates';

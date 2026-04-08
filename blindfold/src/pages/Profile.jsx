@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BottomNav, PlanBadge } from '../components';
+import { BottomNav } from '../components';
 import { getPreferences, clearPreferences } from '../utils/storage';
 import { signOut, supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router-dom';
 export default function Profile() {
   const navigate = useNavigate();
   const [preferences, setPreferences] = useState(null);
-  const [userPlan, setUserPlan] = useState('free');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     yourName: '',
@@ -37,12 +36,10 @@ export default function Profile() {
         });
       }
 
-      // Load user plan from user_metadata
+      // Load user email
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setFormData(prev => ({ ...prev, email: user.email || '' }));
-        const plan = user.user_metadata?.plan || 'free';
-        setUserPlan(plan);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -159,9 +156,8 @@ export default function Profile() {
 
       <div className="max-w-7xl mx-auto px-6 py-12 pb-24 lg:pb-12">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Profile Section */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Profile Card */}
+          {/* Profile Card */}
+          <div className="lg:col-span-2">
             <div className="bg-[#1a1a1a] rounded-2xl p-6 border border-[#2a2a2a]">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
@@ -171,15 +167,12 @@ export default function Profile() {
                     </span>
                   </div>
                   <div>
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-xl font-heading text-white">
-                        {formData.yourName && formData.partnerName
-                          ? `${formData.yourName} & ${formData.partnerName}`
-                          : 'Your Profile'
-                        }
-                      </h2>
-                      <PlanBadge plan={userPlan} />
-                    </div>
+                    <h2 className="text-xl font-heading text-white">
+                      {formData.yourName && formData.partnerName
+                        ? `${formData.yourName} & ${formData.partnerName}`
+                        : 'Your Profile'
+                      }
+                    </h2>
                     <p className="text-[#b0b0b0] font-body">
                       Adventure Partners
                     </p>
@@ -273,22 +266,15 @@ export default function Profile() {
                       label="Frequency"
                       value={frequencyLabels[frequency] || 'Not set'}
                     />
-                    <ProfileRow
-                      label="Subscription Plan"
-                      value={
-                        <span className="flex items-center gap-2">
-                          <PlanBadge plan={userPlan} size="sm" />
-                          {userPlan === 'pro' ? 'Pro Member' : 'Free Plan'}
-                        </span>
-                      }
-                    />
                   </>
                 )}
               </div>
             </div>
+          </div>
 
-            {/* Settings */}
-            <div className="bg-[#1a1a1a] rounded-2xl p-6 border border-[#2a2a2a]">
+          {/* Settings Card */}
+          <div>
+            <div className="bg-[#1a1a1a] rounded-2xl p-6 border border-[#2a2a2a] sticky top-6">
               <h3 className="text-lg font-heading text-white mb-4">Settings</h3>
               <div className="space-y-3">
                 <button className="w-full flex items-center justify-between p-4 rounded-xl bg-[#0a0a0a] hover:bg-[#1a1a1a] transition-colors cursor-pointer">
@@ -303,17 +289,6 @@ export default function Profile() {
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 </button>
-                {userPlan !== 'pro' && (
-                  <button
-                    onClick={() => navigate('/pricing')}
-                    className="w-full flex items-center justify-between p-4 rounded-xl bg-[#0a0a0a] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
-                  >
-                    <span className="font-body text-[#fd297b]">Upgrade to Pro</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fd297b" strokeWidth="2">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                )}
                 <button
                   onClick={handleReset}
                   className="w-full flex items-center justify-between p-4 rounded-xl bg-[#0a0a0a] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
@@ -334,57 +309,6 @@ export default function Profile() {
                     <line x1="21" y1="12" x2="9" y2="12" />
                   </svg>
                 </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar Stats */}
-          <div className="space-y-6">
-            <div className="bg-[#1a1a1a] rounded-2xl p-6 border border-[#2a2a2a]">
-              <h3 className="text-lg font-heading text-white mb-4">Your Stats</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-[#0a0a0a] rounded-xl">
-                  <span className="text-[#b0b0b0]">Dates Done</span>
-                  <span className="text-2xl font-heading bg-gradient-to-r from-[#fd297b] to-[#ff655b] bg-clip-text text-transparent">7</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-[#0a0a0a] rounded-xl">
-                  <span className="text-[#b0b0b0]">Week Streak</span>
-                  <span className="text-2xl font-heading bg-gradient-to-r from-[#fd297b] to-[#ff655b] bg-clip-text text-transparent">3</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-[#0a0a0a] rounded-xl">
-                  <span className="text-[#b0b0b0]">Rank</span>
-                  <span className="text-2xl font-heading text-white">Top 12%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Achievement Preview */}
-            <div className="bg-[#1a1a1a] rounded-2xl p-6 border border-[#2a2a2a]">
-              <h3 className="text-lg font-heading text-white mb-4">Recent Activity</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-[#0a0a0a] rounded-xl">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fd297b]/20 to-[#ff655b]/20 flex items-center justify-center text-[#fd297b]">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                      <polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-white text-sm font-medium">Completed date</p>
-                    <p className="text-[#6e6e6e] text-xs">2 days ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-[#0a0a0a] rounded-xl">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fd297b]/20 to-[#ff655b]/20 flex items-center justify-center text-[#fd297b]">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3.3-1.12.8-2.22 1.5-3.2" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-white text-sm font-medium">Week streak</p>
-                    <p className="text-[#6e6e6e] text-xs">1 week ago</p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

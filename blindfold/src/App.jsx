@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Landing, Onboarding, Home, Profile, Auth, AuthCallback, Pricing, Register, Dashboard, MyDates } from './pages';
+import { Landing, Onboarding, Home, Profile, Auth, AuthCallback, Register, Dashboard, MyDates } from './pages';
 import { hasCompletedOnboarding, getPreferences } from './utils/storage';
 import { onAuthStateChange } from './lib/supabase';
 
@@ -60,9 +60,9 @@ function OnboardingRoute({ children }) {
     return <LoadingScreen />;
   }
 
-  // If already onboarded, redirect to home
+  // If already onboarded, redirect to dashboard
   if (hasOnboarded) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 }
@@ -99,9 +99,8 @@ function App() {
         <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/pricing" element={<Pricing />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/my-dates" element={<ProtectedRoute><MyDates /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

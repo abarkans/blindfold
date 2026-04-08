@@ -5,20 +5,16 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { savePreferences } from '../utils/storage';
 import StepCredentials from '../components/StepCredentials';
-import StepPlanSelect from '../components/StepPlanSelect';
 import StepNames from '../components/StepNames';
 import StepVibes from '../components/StepVibes';
 import StepLimits from '../components/StepLimits';
 import StepFrequency from '../components/StepFrequency';
-import { frequencyOptions } from '../data/mockData';
-import OptionCard from '../components/OptionCard';
 
 export default function Register() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -36,20 +32,16 @@ export default function Register() {
     setStep(2);
   };
 
-  const handlePlanSelect = () => {
+  const handleNamesSubmit = () => {
     setStep(3);
   };
 
-  const handleNamesSubmit = () => {
+  const handleVibesConfirm = () => {
     setStep(4);
   };
 
-  const handleVibesConfirm = () => {
-    setStep(5);
-  };
-
   const handleLimitsConfirm = () => {
-    setStep(6);
+    setStep(5);
   };
 
   const handleFinalSubmit = async () => {
@@ -57,45 +49,95 @@ export default function Register() {
       setLoading(true);
       setError(null);
 
-      // Create account
-      const { data, error } = await supabase.auth.signUp({
+      // Step 1: Create auth user ONLY (no metadata to avoid trigger issues)
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          data: {
-            plan
-          }
-        }
+        password
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Failed to create user');
 
-      if (data && data.user) {
-        // Save preferences
-        const preferences = {
-          names,
-          vibes,
-          limits,
-          frequency
-        };
-        await savePreferences(preferences);
+      const user = authData.user;
+      console.log('User created:', user.id);
 
-        // Also save to Supabase
-        const { error: dbError } = await supabase
-          .from('user_data')
-          .upsert({
-            user_id: data.user.id,
-            data: { preferences },
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'user_id' });
+      // Step 2: Create profile manually (trigger is disabled/broken)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: email,
+          full_name: names.yourName
+        });
 
-        if (dbError) console.error('Error saving to Supabase:', dbError);
-
-        // Navigate to home
-        navigate('/home');
+      if (profileError) {
+        console.error('Profile error:', profileError);
+      } else {
+        console.log('Profile created');
       }
+
+      // Step 3: Save preferences locally
+      const preferences = {
+        names,
+        vibes,
+        limits,
+        frequency
+      };
+      await savePreferences(preferences);
+
+      // Verify localStorage was written
+      const verifyPrefs = localStorage.getItem('blindfold_preferences');
+      console.log('localStorage verification:', verifyPrefs ? JSON.parse(verifyPrefs) : 'NOT FOUND');
+
+      // Step 4: Create couple record
+      const { data: couple, error: coupleError } = await supabase
+        .from('couples')
+        .insert({
+          navigator_id: user.id,
+          couple_name: `${names.yourName} & ${names.partnerName}`
+        })
+        .select()
+        .single();
+
+      if (coupleError) {
+        console.error('Couple error:', coupleError);
+      } else {
+        console.log('Couple created:', couple.id);
+      }
+
+      // Step 5: Create preferences record
+      if (couple) {
+        const { error: prefError } = await supabase
+          .from('preferences')
+          .insert({
+            couple_id: couple.id,
+            city: '',
+            vibes: vibes.join(','),
+            budget_min: Math.floor(limits.budget / 25),
+            budget_max: Math.ceil(limits.budget / 25),
+            max_distance_miles: limits.hasCar ? 50 : 10,
+            indoor_outdoor: limits.walkingDistance ? 'indoor' : 'either',
+            time_of_day: 'evening',
+            preferred_days: frequency === 'weekly' ? 'weekend' : 'weekend'
+          });
+
+        if (prefError) console.error('Preferences error:', prefError);
+        else console.log('Preferences saved to DB');
+      }
+
+      // Mark onboarding complete
+      localStorage.setItem('blindfold_onboarding_complete', 'true');
+
+      console.log('Registration complete, navigating to dashboard...');
+
+      // Small delay to ensure localStorage is written
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Navigate to home
+      navigate('/home', { replace: true });
     } catch (err) {
       setError(err.message);
+      console.error('Registration error:', err);
     } finally {
       setLoading(false);
     }
@@ -108,17 +150,16 @@ export default function Register() {
   };
 
   const getTotalSteps = () => {
-    return 6; // Credentials, Plan, Names, Vibes, Limits, Frequency
+    return 5; // Credentials, Names, Vibes, Limits, Frequency
   };
 
   const getStepLabel = () => {
     const labels = {
       1: 'Credentials',
-      2: 'Plan',
-      3: 'Names',
-      4: 'Vibes',
-      5: 'Limits',
-      6: 'Frequency'
+      2: 'Names',
+      3: 'Vibes',
+      4: 'Limits',
+      5: 'Frequency'
     };
     return labels[step] || '';
   };
@@ -177,16 +218,6 @@ export default function Register() {
             )}
 
             {step === 2 && (
-              <StepPlanSelect
-                plan={plan}
-                setPlan={setPlan}
-                onBack={handleBack}
-                onConfirm={handlePlanSelect}
-                loading={loading}
-              />
-            )}
-
-            {step === 3 && (
               <StepNames
                 names={names}
                 setNames={setNames}
@@ -195,7 +226,7 @@ export default function Register() {
               />
             )}
 
-            {step === 4 && (
+            {step === 3 && (
               <StepVibes
                 vibes={vibes}
                 setVibes={setVibes}
@@ -204,7 +235,7 @@ export default function Register() {
               />
             )}
 
-            {step === 5 && (
+            {step === 4 && (
               <StepLimits
                 limits={limits}
                 setLimits={setLimits}
@@ -213,7 +244,7 @@ export default function Register() {
               />
             )}
 
-            {step === 6 && (
+            {step === 5 && (
               <StepFrequency
                 frequency={frequency}
                 setFrequency={setFrequency}

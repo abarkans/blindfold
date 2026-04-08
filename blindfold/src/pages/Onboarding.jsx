@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Slider, PillSelect, OptionCard, ProgressBar, Toggle } from '../components';
@@ -30,22 +32,42 @@ export default function Onboarding() {
       };
       // Save to localStorage first
       await savePreferences(preferences);
-      // Also save to Supabase
+
+      // Update Supabase preferences with final data
       try {
         const { data: authData } = await supabase.auth.getUser();
         if (authData && authData.user) {
-          const { error } = await supabase
-            .from('user_data')
-            .upsert({
-              user_id: authData.user.id,
-              data: { preferences },
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'user_id' });
-          if (error) console.error('Error saving to Supabase:', error);
+          // Get the couple record
+          const { data: couple } = await supabase
+            .from('couples')
+            .select('id')
+            .or(`navigator_id.eq.${authData.user.id},curator_id.eq.${authData.user.id}`)
+            .single();
+
+          if (couple) {
+            // Update preferences with final data
+            const { error } = await supabase
+              .from('preferences')
+              .update({
+                vibes: vibes.join(','),
+                budget_min: Math.floor(limits.budget / 25),
+                budget_max: Math.ceil(limits.budget / 25),
+                max_distance_miles: limits.hasCar ? 50 : 10,
+                indoor_outdoor: limits.walkingDistance ? 'indoor' : 'either',
+                preferred_days: frequency === 'weekly' ? 'weekend' : 'weekend'
+              })
+              .eq('couple_id', couple.id);
+
+            if (error) console.error('Error updating preferences:', error);
+          }
         }
       } catch (error) {
         console.error('Error saving user data:', error);
       }
+
+      // Mark onboarding as complete
+      localStorage.setItem('blindfold_onboarding_complete', 'true');
+
       // Navigate to home/dashboard
       navigate('/home');
     }

@@ -108,12 +108,6 @@ export default function Landing() {
             >
               Home
             </a>
-            <a
-              href="/pricing"
-              className="text-[#b0b0b0] hover:text-white transition-colors font-medium"
-            >
-              Pricing
-            </a>
             <button
               onClick={() => isLoggedIn ? navigate('/home') : navigate('/auth')}
               className="px-6 py-2 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-medium hover:opacity-90 transition-opacity"

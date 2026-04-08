@@ -7,9 +7,13 @@ import { supabase } from '../lib/supabase';
 
 export default function MyDates() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('completed');
   const [completedDates, setCompletedDates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalDates: 0,
+    totalSpent: 0,
+    favoriteCategory: 'N/A'
+  });
 
   useEffect(() => {
     loadCompletedDates();
@@ -21,13 +25,31 @@ export default function MyDates() {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('completed_dates')
+        .from('date_history')
         .select('*')
-        .eq('user_id', user.id)
-        .order('completed_date', { ascending: false });
+        .eq('couple_id', user.id)
+        .order('date_occurred_at', { ascending: false });
 
       if (!error && data) {
         setCompletedDates(data);
+
+        // Calculate stats
+        const totalSpent = data.reduce((sum, d) => sum + (d.budget || 0), 0);
+
+        // Find favorite category
+        const categoryCount = {};
+        data.forEach(d => {
+          const cat = d.category || 'other';
+          categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+        });
+        const favoriteCategory = Object.entries(categoryCount)
+          .sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+
+        setStats({
+          totalDates: data.length,
+          totalSpent,
+          favoriteCategory
+        });
       }
     } catch (error) {
       console.error('Error loading completed dates:', error);
@@ -79,74 +101,74 @@ export default function MyDates() {
           <p className="text-[#b0b0b0]">Track your dating journey</p>
         </div>
 
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Sidebar Stats */}
-          <div className="space-y-4">
-            <StatCard
-              value={completedDates.length}
-              label="Dates Completed"
-              icon={
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              }
-            />
-            <StatCard
-              value="3"
-              label="Week Streak"
-              accent
-              icon={
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3.3-1.12.8-2.22 1.5-3.2" />
-                </svg>
-              }
-            />
-            <StatCard
-              value="Top 12%"
-              label="Of Couples"
-              icon={
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="8" r="7" />
-                  <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
-                </svg>
-              }
-            />
-          </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <StatCard
+            value={stats.totalDates}
+            label="Dates Completed"
+            icon={
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            }
+          />
+          <StatCard
+            value={`€${stats.totalSpent}`}
+            label="Total Spent"
+            icon={
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="1" x2="12" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            }
+          />
+          <StatCard
+            value={stats.favoriteCategory}
+            label="Favorite Category"
+            icon={
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+              </svg>
+            }
+          />
+        </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] animate-pulse" />
+        {/* Date History */}
+        <div className="mb-6">
+          <h2 className="text-xl font-heading text-white mb-4">Date History</h2>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] animate-pulse" />
+            </div>
+          ) : completedDates.length === 0 ? (
+            <div className="bg-[#1a1a1a] rounded-2xl p-12 border border-[#2a2a2a] text-center">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#fd297b]/20 to-[#ff655b]/20 flex items-center justify-center mx-auto mb-6">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fd297b" strokeWidth="2">
+                  <rect x="3" y="7" width="18" height="13" rx="2" />
+                  <path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
+                </svg>
               </div>
-            ) : completedDates.length === 0 ? (
-              <div className="bg-[#1a1a1a] rounded-2xl p-12 border border-[#2a2a2a] text-center">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#fd297b]/20 to-[#ff655b]/20 flex items-center justify-center mx-auto mb-6">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fd297b" strokeWidth="2">
-                    <rect x="3" y="7" width="18" height="13" rx="2" />
-                    <path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-heading text-white mb-2">No dates yet</h3>
-                <p className="text-[#b0b0b0] font-body mb-6">
-                  Complete your first mystery date to start building your adventure history
-                </p>
-                <button
-                  onClick={() => navigate('/home')}
-                  className="px-6 py-3 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold hover:opacity-90 transition-opacity"
-                >
-                  Start Your First Date
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {completedDates.map((date) => (
-                  <DateHistoryCard key={date.id} date={date} />
-                ))}
-              </div>
-            )}
-          </div>
+              <h3 className="text-xl font-heading text-white mb-2">No dates yet</h3>
+              <p className="text-[#b0b0b0] font-body mb-6">
+                Complete your first mystery date to start building your adventure history
+              </p>
+              <button
+                onClick={() => navigate('/home')}
+                className="px-6 py-3 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold hover:opacity-90 transition-opacity"
+              >
+                Start Your First Date
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {completedDates.map((date) => (
+                <DateHistoryCard key={date.id} date={date} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -186,7 +208,8 @@ function DateHistoryCard({ date }) {
     nightlife: { label: 'Nightlife', color: 'from-indigo-500 to-violet-600' }
   };
 
-  const category = categoryConfig[date.category] || { label: date.category, color: 'from-[#fd297b] to-[#ff655b]' };
+  // Get category from title or use default
+  const category = categoryConfig[date.category] || { label: date.category || 'Date', color: 'from-[#fd297b] to-[#ff655b]' };
 
   return (
     <div className="bg-[#1a1a1a] rounded-2xl p-5 border border-[#2a2a2a]">
@@ -206,7 +229,7 @@ function DateHistoryCard({ date }) {
               width="16"
               height="16"
               viewBox="0 0 24 24"
-              fill={i < date.rating ? '#fd297b' : 'none'}
+              fill={i < (date.overall_rating || 0) ? '#fd297b' : 'none'}
               stroke="#fd297b"
               strokeWidth="2"
             >
@@ -216,9 +239,9 @@ function DateHistoryCard({ date }) {
         </div>
       </div>
 
-      {date.notes && (
+      {date.curator_notes && (
         <p className="text-[#b0b0b0] font-body text-sm mb-4">
-          {date.notes}
+          {date.curator_notes}
         </p>
       )}
 
@@ -230,9 +253,8 @@ function DateHistoryCard({ date }) {
             <line x1="8" y1="2" x2="8" y2="6" />
             <line x1="3" y1="10" x2="21" y2="10" />
           </svg>
-          {formatDate(date.completed_date)}
+          {formatDate(date.date_occurred_at)}
         </span>
-        <span>${date.budget} budget</span>
       </div>
     </div>
   );

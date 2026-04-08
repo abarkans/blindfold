@@ -414,55 +414,99 @@ export default function Home() {
           </h1>
         </div>
 
-        <div className="grid lg:grid-cols-4 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content - Date Card */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             {/* Main Drop Card */}
             <div className="relative">
               {!isRevealed ? (
                 <div className={`
                   bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a]
-                  rounded-3xl p-8 md:p-12
+                  rounded-3xl p-6 md:p-8
                   border border-[#2a2a2a]
                   transition-all duration-500
                   ${isFlipping ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
                 `}>
-                  <div className="flex flex-col items-center text-center">
-                    {/* Mystery Envelope Icon */}
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center mb-6 shadow-lg shadow-[#fd297b]/30">
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="7" width="18" height="13" rx="2" />
-                        <path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
-                        <path d="M12 12v5" />
-                        <path d="M9 14l3 3 3-3" />
-                      </svg>
+                  <div className="space-y-6">
+                    {/* Blurred Header */}
+                    <div className="text-center">
+                      <div className="inline-block mb-3 blur-sm">
+                        <CategoryBadge category={currentDrop.category} size="md" />
+                      </div>
+                      <h2 className="text-2xl md:text-3xl font-heading text-white mb-3 blur-sm">
+                        {currentDrop.title}
+                      </h2>
+                      <p className="text-[#b0b0b0] font-body leading-relaxed text-lg blur-sm">
+                        {currentDrop.description}
+                      </p>
                     </div>
 
-                    <h2 className="text-2xl md:text-3xl font-heading text-white mb-2">
-                      Your Next Drop
-                    </h2>
-                    <p className="text-[#b0b0b0] font-body mb-6 text-lg">
-                      Unlocks in {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m
-                    </p>
-
-                    {/* Countdown Progress */}
-                    <div className="w-full max-w-md bg-[#2a2a2a] rounded-full h-3 mb-8 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] rounded-full transition-all duration-1000"
-                        style={{ width: '65%' }}
-                      />
+                    {/* Blurred Meta Info */}
+                    <div className="flex gap-6 text-base font-body text-[#6e6e6e] justify-center blur-sm">
+                      <span className="flex items-center gap-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        {currentDrop.duration}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="12" y1="1" x2="12" y2="23" />
+                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        </svg>
+                        ${currentDrop.budget} budget
+                      </span>
                     </div>
 
-                    <button
-                      onClick={handleReveal}
-                      className="w-full max-w-md py-4 px-8 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold text-lg shadow-lg shadow-[#fd297b]/30 hover:opacity-90 transition-opacity"
-                    >
-                      Both Ready? Reveal the Drop
-                    </button>
+                    {/* Blurred Roles Preview */}
+                    <div className="border-t border-[#2a2a2a] pt-6">
+                      <h3 className="text-base font-body text-[#b0b0b0] mb-4 blur-sm">Your Roles</h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="bg-[#1a1a1a] rounded-xl p-5 border border-[#2a2a2a] blur-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xl">🗺️</span>
+                            <span className="font-heading bg-gradient-to-r from-[#fd297b] to-[#ff655b] bg-clip-text text-transparent">Role A</span>
+                          </div>
+                          <p className="text-[#b0b0b0] font-body blur-sm">
+                            Mystery instruction hidden...
+                          </p>
+                        </div>
+                        <div className="bg-[#1a1a1a] rounded-xl p-5 border border-[#2a2a2a] blur-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xl">🎯</span>
+                            <span className="font-heading bg-gradient-to-r from-[#fd297b] to-[#ff655b] bg-clip-text text-transparent">Role B</span>
+                          </div>
+                          <p className="text-[#b0b0b0] font-body blur-sm">
+                            Mystery instruction hidden...
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-                    <p className="text-[#6e6e6e] font-body text-sm mt-4">
-                      Make sure you're both ready before revealing
-                    </p>
+                    {/* Reveal Button */}
+                    <div className="border-t border-[#2a2a2a] pt-6">
+                      <div className="text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#fd297b] to-[#ff655b] flex items-center justify-center shadow-lg shadow-[#fd297b]/30">
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        </div>
+                        <h3 className="text-xl font-heading text-white mb-2">
+                          Ready to Reveal?
+                        </h3>
+                        <p className="text-[#b0b0b0] font-body mb-6">
+                          Make sure you're both ready to see your mystery date
+                        </p>
+                        <button
+                          onClick={handleReveal}
+                          className="w-full max-w-md py-4 px-8 rounded-full bg-gradient-to-r from-[#fd297b] to-[#ff655b] text-white font-semibold text-lg shadow-lg shadow-[#fd297b]/30 hover:opacity-90 transition-opacity"
+                        >
+                          Reveal Date
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
